@@ -1,5 +1,6 @@
 package com.frankuzi.frankuzistore
 
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -8,21 +9,20 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.frankuzi.frankuzistore.applications.domain.utils.AndroidDownloader
 import com.frankuzi.frankuzistore.applications.domain.utils.DownloadHandler
 import com.frankuzi.frankuzistore.ui.theme.FrankuziStoreTheme
+import kotlin.concurrent.thread
 
 
 class MainActivity : ComponentActivity() {
@@ -32,6 +32,16 @@ class MainActivity : ComponentActivity() {
         _downloadHandler = DownloadHandler(this)
 
         super.onCreate(savedInstanceState)
+
+        val isInstalled = mutableStateOf(false)
+
+        thread {
+            while (true) {
+                Thread.sleep(2000)
+                isInstalled.value = applicationIsInstalled()
+            }
+        }
+
         setContent {
             FrankuziStoreTheme {
                 // A surface container using the 'background' color from the theme
@@ -39,9 +49,9 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    Greeting() {
+                    Greeting( {
                         startApplication()
-                    }
+                    }, isInstalled.value, _downloadHandler.isDownloading.value, _downloadHandler.progress.value)
                 }
             }
         }
@@ -113,10 +123,69 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun checkChangedPackages(context: Context) {
+
+        while (true) {
+            Thread.sleep(2000)
+            val packageManagerApps = context.packageManager
+            val sequenceNumber = getSequenceNumber(context)
+            Log.d("LOOOOG", "sequenceNumber = $sequenceNumber")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+                val changedPackages = packageManagerApps.getChangedPackages(sequenceNumber)
+
+                if (changedPackages != null) {
+                    // Packages are changed
+
+                    // Get the list of changed packages
+                    // the list includes new, updated and deleted apps
+                    val changedPackagesNames = changedPackages.packageNames
+
+                    var appName: CharSequence
+
+                    for (packageName in changedPackagesNames) {
+                        try {
+                            appName = packageManagerApps.getApplicationLabel(
+                                packageManagerApps.getApplicationInfo(
+                                    packageName, 0,
+                                )
+                            )
+
+                            // Either a new or an updated app
+                            Log.d(
+                                "LOOOOG",
+                                "New Or Updated App: $packageName , appName = ${appName.toString()}"
+                            )
+                        } catch (e: PackageManager.NameNotFoundException) {
+                            // The app is deleted
+                            Log.d("LOOOOG", "Deleted App: $packageName")
+                        }
+                    }
+                    saveSequenceNumber(context, changedPackages.sequenceNumber)
+                } else {
+                    // packages not changed
+                }
+            }
+        }
+    }
+
+    private fun getSequenceNumber(context: Context): Int {
+        val sharedPrefFile = context.getSharedPreferences("your_file_name", MODE_PRIVATE)
+        return sharedPrefFile.getInt("sequence_number", 0)
+    }
+
+    private fun saveSequenceNumber(context: Context, newSequenceNumber: Int) {
+        val sharedPrefFile = context.getSharedPreferences("your_file_name", MODE_PRIVATE)
+        val editor = sharedPrefFile.edit()
+        editor.putInt("sequence_number", newSequenceNumber)
+        editor.apply()
+    }
 }
 
 @Composable
-fun Greeting(playClick: () -> Unit) {
+fun Greeting(playClick: () -> Unit, isInstalled: Boolean, isDownloading: Boolean, progress: Int) {
     Column(
         modifier = Modifier
             .fillMaxSize(),
@@ -127,8 +196,20 @@ fun Greeting(playClick: () -> Unit) {
             text = "Obshchalka",
         )
         Spacer(modifier = Modifier.height(5.dp))
-        Button(onClick = { playClick.invoke() }) {
-            Text(text = "Play")
+
+        if (!isDownloading) {
+            Button(onClick = { playClick.invoke() }) {
+                Text(text = if (isInstalled) "Play" else "Install")
+            }
+        }
+
+        if (isDownloading) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(progress = progress / 100f)
+                Text(text = progress.toString())
+            }
         }
     }
 }
@@ -137,6 +218,6 @@ fun Greeting(playClick: () -> Unit) {
 @Composable
 fun DefaultPreview() {
     FrankuziStoreTheme {
-        Greeting() {  }
+        Greeting({}, true,true, 30)
     }
 }
