@@ -1,4 +1,4 @@
-package com.frankuzi.frankuzistore.applications
+package com.frankuzi.frankuzistore.applications.presentation
 
 sealed class ApplicationState {
     object NotDownloaded : ApplicationState()

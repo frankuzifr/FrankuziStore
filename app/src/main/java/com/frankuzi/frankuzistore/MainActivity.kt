@@ -20,17 +20,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
+import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestState
 import com.frankuzi.frankuzistore.applications.domain.utils.DownloadHandler
+import com.frankuzi.frankuzistore.applications.domain.utils.DownloadHandlerImpl
+import com.frankuzi.frankuzistore.applications.presentation.StoreViewModel
+import com.frankuzi.frankuzistore.applications.presentation.components.ApplicationsListScreen
 import com.frankuzi.frankuzistore.ui.theme.FrankuziStoreTheme
+import com.frankuzi.frankuzistore.utils.myLog
+import dagger.hilt.android.AndroidEntryPoint
 import kotlin.concurrent.thread
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private lateinit var _downloadHandler: DownloadHandler
+    private lateinit var _downloadHandler: DownloadHandlerImpl
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        _downloadHandler = DownloadHandler(this)
-
+        val downloadHandler = DownloadHandlerImpl(this)
+        _downloadHandler = downloadHandler
+        App.downloadHandler = downloadHandler
         super.onCreate(savedInstanceState)
 
         val isInstalled = mutableStateOf(false)
@@ -44,14 +53,19 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FrankuziStoreTheme {
+
+                val storeViewModel = hiltViewModel<StoreViewModel>()
+
+                storeViewModel.getApplications()
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    Greeting( {
-                        startApplication()
-                    }, isInstalled.value, _downloadHandler.isDownloading.value, _downloadHandler.progress.value)
+                    ApplicationsListScreen(viewModel = storeViewModel)
+//                    Greeting( {
+//                        startApplication()
+//                    }, isInstalled.value, _downloadHandler.isDownloading.value, _downloadHandler.progress.value)
                 }
             }
         }
@@ -86,7 +100,14 @@ class MainActivity : ComponentActivity() {
 //            return
 
 
-        _downloadHandler.enqueueDownload("https://firebasestorage.googleapis.com/v0/b/frankuzi-store.appspot.com/o/obshchalka.apk?alt=media&token=16bd380c-7682-41fc-ab96-738ac0718cb2")
+        val applicationInfo = ApplicationInfo(
+            packageName = "com.frankuzi.obshchalka",
+            applicationName = "Obshchalka",
+            description = "",
+            downloadUrl = "https://firebasestorage.googleapis.com/v0/b/frankuzi-store.appspot.com/o/obshchalka.apk?alt=media&token=16bd380c-7682-41fc-ab96-738ac0718cb2",
+            imageUrl = ""
+        )
+        _downloadHandler.enqueueDownload(applicationInfo, {}, {}, {})
     }
 
     private fun hasStoragePermission(): Boolean {
@@ -183,6 +204,43 @@ class MainActivity : ComponentActivity() {
         editor.apply()
     }
 }
+
+//@Composable
+//fun Test(viewModel: StoreViewModel) {
+//
+//    val applicationsRequestState = viewModel.getApplicationState.value
+//
+//    Column(
+//        modifier = Modifier
+//            .fillMaxSize(),
+//        horizontalAlignment = Alignment.CenterHorizontally,
+//        verticalArrangement = Arrangement.Center
+//    ) {
+//        myLog("Recompose")
+//        when (applicationsRequestState) {
+//            is ApplicationsRequestState.Error -> {
+//                Text(
+//                    text = "${applicationsRequestState.message}",
+//                )
+//            }
+//            ApplicationsRequestState.Loading -> {
+//                Text(
+//                    text = "Loading",
+//                )
+//            }
+//            is ApplicationsRequestState.Success -> {
+//                for (application in applicationsRequestState.applications) {
+//                    Text(
+//                        text = "${application.packageName}",
+//                    )
+//                }
+//            }
+//        }
+//        Button(onClick = { viewModel.getApplications() }) {
+//            Text(text = "Update")
+//        }
+//    }
+//}
 
 @Composable
 fun Greeting(playClick: () -> Unit, isInstalled: Boolean, isDownloading: Boolean, progress: Int) {

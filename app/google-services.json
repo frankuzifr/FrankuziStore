@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "631099650606",
+    "project_id": "frankuzi-store",
+    "storage_bucket": "frankuzi-store.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:631099650606:android:0139dfc8ffec1feb5b65bf",
+        "android_client_info": {
+          "package_name": "com.frankuzi.frankuzistore"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "631099650606-ufae4tfmq7drj4gjobbov56odh5irjct.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChwa981XMPWb4x5Qu9bi8t1r2tEnEcezU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "631099650606-ufae4tfmq7drj4gjobbov56odh5irjct.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

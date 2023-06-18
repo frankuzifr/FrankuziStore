@@ -1,8 +1,5 @@
-package com.frankuzi.frankuzistore.ui
+package com.frankuzi.frankuzistore.applications.presentation.components
 
-import android.widget.GridLayout
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -17,21 +14,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.frankuzi.frankuzistore.applications.ApplicationState
+import com.frankuzi.frankuzistore.applications.presentation.ApplicationState
 import com.frankuzi.frankuzistore.R
 
 @Composable
-fun ApplicationIcon(applicationName: String, imagePath: String, applicationState: ApplicationState) {
+fun ApplicationIcon(applicationName: String, imagePath: String, applicationState: ApplicationState, onDownloadButtonClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .width(200.dp),
+            .width(100.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -39,13 +37,13 @@ fun ApplicationIcon(applicationName: String, imagePath: String, applicationState
             AsyncImage(
                 model = imagePath,
                 contentDescription = null,
-                placeholder = painterResource(id = R.drawable.genshin),
+                placeholder = painterResource(id = R.drawable.baseline_image_24),
+                error = painterResource(id = R.drawable.baseline_error_24),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.Red)
-                    .height(120.dp)
-                    .width(120.dp),
+                    .height(100.dp)
+                    .width(100.dp),
                 colorFilter = when (applicationState) {
                     is ApplicationState.Downloading -> {
                         ColorFilter.tint(color = Color.Gray, BlendMode.Multiply)
@@ -81,18 +79,35 @@ fun ApplicationIcon(applicationName: String, imagePath: String, applicationState
             }
         }
         Spacer(modifier = Modifier.height(5.dp))
-        Text(
-            text = applicationName,
-            fontSize = 18.sp
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .height(50.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = applicationName,
+                fontSize = 14.sp,
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+        }
         Spacer(modifier = Modifier.height(5.dp))
         Button(
             onClick = {
-                /* Do something! */
+                when (applicationState) {
+                    is ApplicationState.NotDownloaded -> {
+                        onDownloadButtonClick.invoke()
+                    }
+                    else -> {}
+                }
             },
             shape = RoundedCornerShape(20.dp),
             enabled = when (applicationState) {
-                is  ApplicationState.Downloading -> {
+                is ApplicationState.Downloading -> {
                     false
                 }
                 else -> {
@@ -100,7 +115,7 @@ fun ApplicationIcon(applicationName: String, imagePath: String, applicationState
                 }
             },
             modifier = Modifier
-                .width(120.dp)
+                .fillMaxWidth()
         ) {
             Text(
                 text = when (applicationState) {
@@ -121,18 +136,18 @@ fun ApplicationIcon(applicationName: String, imagePath: String, applicationState
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun ApplicationIconPreview() {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        items(10) {
-            ApplicationIcon(applicationName = "Obshalka", imagePath = "", applicationState = ApplicationState.Downloading(69))
-        }
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun ApplicationIconPreview() {
+//    LazyVerticalGrid(
+//        columns = GridCells.Adaptive(minSize = 120.dp),
+//        verticalArrangement = Arrangement.spacedBy(16.dp),
+//        horizontalArrangement = Arrangement.spacedBy(16.dp),
+//        modifier = Modifier
+//            .fillMaxSize()
+//    ) {
+//        items(10) {
+//            ApplicationIcon(applicationName = "Obshalka", imagePath = "", applicationState = ApplicationState.Downloading(69))
+//        }
+//    }
+//}
