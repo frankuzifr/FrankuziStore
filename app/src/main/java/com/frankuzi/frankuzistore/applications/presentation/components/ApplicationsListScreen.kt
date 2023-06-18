@@ -34,7 +34,6 @@ fun ApplicationsListScreen(viewModel: StoreViewModel) {
     ) {
         it
 
-        myLog("Recompose")
         when (val applicationsRequestState = getApplicationState.value) {
             is ApplicationsRequestState.Error -> ErrorView(applicationsRequestStateSuccess = applicationsRequestState)
             ApplicationsRequestState.Loading -> LoadingView()
@@ -48,6 +47,7 @@ fun ApplicationsListScreen(viewModel: StoreViewModel) {
 
 @Composable
 fun SuccessView(applicationsRequestStateSuccess: ApplicationsRequestState.Success, viewModel: StoreViewModel) {
+
     val applications = applicationsRequestStateSuccess.applications.collectAsStateWithLifecycle()
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),

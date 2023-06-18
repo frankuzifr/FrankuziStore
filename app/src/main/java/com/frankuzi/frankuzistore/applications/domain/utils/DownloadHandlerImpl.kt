@@ -17,15 +17,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.FileProvider
 import com.frankuzi.frankuzistore.BuildConfig
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
-import com.frankuzi.frankuzistore.applications.presentation.ApplicationState
-import com.frankuzi.frankuzistore.utils.myLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
 
 class DownloadHandlerImpl(
-    val context: Activity
+    val context: Context
 ): DownloadHandler {
 
     companion object {
@@ -59,7 +57,7 @@ class DownloadHandlerImpl(
         val downloadUri = Uri.parse(applicationInfo.downloadUrl)
         val request = DownloadManager.Request(downloadUri)
             .setMimeType(MIME_TYPE)
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION)
             .setTitle("${applicationInfo.applicationName} downloading")
             .setDestinationUri(uri)
 
@@ -87,10 +85,7 @@ class DownloadHandlerImpl(
                     isDownloading.value = false
                 }
 
-
-//                myLog((bytesDownloaded * 100L / bytesTotal).toInt().toString())
                 onProgressChanged.invoke((bytesDownloaded * 100L / bytesTotal).toInt())
-//                applicationInfo.applicationState = ApplicationState.Downloading((bytesDownloaded * 100L / bytesTotal).toInt())
                 progress.value = (bytesDownloaded * 100L / bytesTotal).toInt()
 
                 cursor.close()
@@ -101,6 +96,12 @@ class DownloadHandlerImpl(
     private fun showInstallOption(destination: String, uri: Uri, onCompleteAction: () -> Unit, onErrorAction: () -> Unit) {
         val onComplete = object : BroadcastReceiver() {
             override fun onReceive(recieverContext: Context?, intent: Intent?) {
+
+                val file = File(destination)
+
+                if (!file.exists())
+                    return
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     val contentUri = FileProvider.getUriForFile(
                         recieverContext!!,

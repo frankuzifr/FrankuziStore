@@ -1,17 +1,13 @@
 package com.frankuzi.frankuzistore.applications.presentation
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.frankuzi.frankuzistore.App
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestState
 import com.frankuzi.frankuzistore.applications.domain.repository.StoreRepository
-import com.frankuzi.frankuzistore.applications.domain.utils.DownloadHandlerImpl
 import com.frankuzi.frankuzistore.utils.myLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -50,7 +46,7 @@ class StoreViewModel @Inject constructor(
             ApplicationsRequestState.Success(MutableStateFlow(applications))
         }
 
-        App.downloadHandler?.enqueueDownload(
+        App.downloader?.addedDownload(
             applicationInfo = application,
             onProgressChanged = {progress ->
                 myLog(progress.toString())
