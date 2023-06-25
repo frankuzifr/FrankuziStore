@@ -4,5 +4,5 @@ import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestS
 import kotlinx.coroutines.flow.MutableStateFlow
 
 interface StoreRepository {
-    fun getApplications(): MutableStateFlow<ApplicationsRequestState>
+    fun updateApplicationsInfo(): MutableStateFlow<ApplicationsRequestState>
 }

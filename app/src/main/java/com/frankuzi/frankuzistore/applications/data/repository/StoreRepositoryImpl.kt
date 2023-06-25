@@ -19,7 +19,7 @@ class StoreRepositoryImpl @Inject constructor(
     private var _applications = MutableStateFlow<ApplicationsRequestState>(ApplicationsRequestState.Loading)
     //val applications: State<ApplicationsRequestState> = _applications
 
-    override fun getApplications(): MutableStateFlow<ApplicationsRequestState> {
+    override fun updateApplicationsInfo(): MutableStateFlow<ApplicationsRequestState> {
         _applications.value = ApplicationsRequestState.Loading
 
         firestore.collection("applications")

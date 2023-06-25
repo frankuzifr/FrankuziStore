@@ -26,7 +26,7 @@ import com.frankuzi.frankuzistore.applications.presentation.ApplicationState
 import com.frankuzi.frankuzistore.R
 
 @Composable
-fun ApplicationIcon(applicationName: String, imagePath: String, applicationState: ApplicationState, onDownloadButtonClick: () -> Unit) {
+fun ApplicationIcon(applicationName: String, imagePath: String, applicationState: ApplicationState, onDownloadButtonClick: () -> Unit, onPlayButtonClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(100.dp),
@@ -102,6 +102,12 @@ fun ApplicationIcon(applicationName: String, imagePath: String, applicationState
                     is ApplicationState.NotDownloaded -> {
                         onDownloadButtonClick.invoke()
                     }
+                    is ApplicationState.Downloaded -> {
+                        onDownloadButtonClick.invoke()
+                    }
+                    is ApplicationState.Installed -> {
+                        onPlayButtonClick.invoke()
+                    }
                     else -> {}
                 }
             },
@@ -119,8 +125,11 @@ fun ApplicationIcon(applicationName: String, imagePath: String, applicationState
         ) {
             Text(
                 text = when (applicationState) {
-                    is ApplicationState.Downloaded -> {
+                    is ApplicationState.Installed -> {
                         "Play"
+                    }
+                    is ApplicationState.Downloaded -> {
+                        "Download"
                     }
                     is ApplicationState.Downloading -> {
                         "Downloading"

@@ -1,114 +1,143 @@
 package com.frankuzi.frankuzistore
 
-import android.content.pm.PackageManager
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.frankuzi.frankuzistore.applications.domain.utils.DownloadHandlerImpl
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.frankuzi.frankuzistore.applications.domain.utils.Downloader
+import com.frankuzi.frankuzistore.applications.domain.utils.InstalledApplicationsChecker
+import com.frankuzi.frankuzistore.applications.presentation.Screen
 import com.frankuzi.frankuzistore.applications.presentation.StoreViewModel
 import com.frankuzi.frankuzistore.applications.presentation.components.ApplicationsListScreen
 import com.frankuzi.frankuzistore.ui.theme.FrankuziStoreTheme
+import com.frankuzi.frankuzistore.utils.LifecycleEventListener
 import dagger.hilt.android.AndroidEntryPoint
-import kotlin.concurrent.thread
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private lateinit var _downloadHandler: DownloadHandlerImpl
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val downloadHandler = DownloadHandlerImpl(this)
-        _downloadHandler = downloadHandler
         App.downloader = Downloader(this)
+        App.installedApplicationsChecker = InstalledApplicationsChecker(this)
         super.onCreate(savedInstanceState)
-
-        val isInstalled = mutableStateOf(false)
-
-        thread {
-            while (true) {
-                Thread.sleep(2000)
-                isInstalled.value = applicationIsInstalled()
-            }
-        }
 
         setContent {
             FrankuziStoreTheme {
 
                 val storeViewModel = hiltViewModel<StoreViewModel>()
 
-                storeViewModel.getApplications()
+                LifecycleEventListener {event ->
+                    when (event) {
+                        Lifecycle.Event.ON_RESUME -> {
+                            storeViewModel.startActualizeApplications()
+                        }
+                        Lifecycle.Event.ON_PAUSE -> {
+                            storeViewModel.stopActualizeApplications()
+                        }
+                        else -> {}
+                    }
+                }
+
+                storeViewModel.updateApplicationsInfo()
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    ApplicationsListScreen(viewModel = storeViewModel)
-//                    Greeting( {
-//                        startApplication()
-//                    }, isInstalled.value, _downloadHandler.isDownloading.value, _downloadHandler.progress.value)
+
+//                    ApplicationsListScreen(viewModel = storeViewModel, context = this)
+                    Content(viewModel = storeViewModel)
                 }
             }
         }
     }
+}
 
-    private fun applicationIsInstalled(): Boolean {
-        val installedApplications =
-            packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+@Composable
+fun Content(viewModel: StoreViewModel) {
+    val navController = rememberNavController()
+    val items = listOf(
+        Screen.ApplicationsList,
+        Screen.MyInfo,
+    )
+    var appBarTitle by remember {
+        mutableStateOf("")
+    }
 
-        for (application in installedApplications) {
-            if (application.packageName != "com.frankuzi.obshchalka")
-                continue
-
-            return true
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = { TopAppBar(title = {
+            Text(text = appBarTitle)
+        })},
+        bottomBar = {
+            BottomNavigation {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
+                items.forEach{ screen ->
+                    BottomNavigationItem(
+                        icon = {
+                            Icon(imageVector = screen.icon, contentDescription = null)
+                        },
+                        label = {
+                            Text(text = stringResource(id = screen.resourceId))
+                        },
+                        selected = currentDestination?.hierarchy?.any {
+                            it.route == screen.route
+                        } == true,
+                        onClick = {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
+            }
         }
+    ) { innerPadding ->
 
-        return false
+        NavHost(navController = navController, startDestination = Screen.ApplicationsList.route, Modifier.padding(innerPadding)) {
+            composable(Screen.ApplicationsList.route) {
+                appBarTitle = stringResource(id = Screen.ApplicationsList.resourceId)
+                ApplicationsListScreen(viewModel = viewModel)
+            }
+            composable(Screen.MyInfo.route) {
+                appBarTitle = stringResource(id = Screen.MyInfo.resourceId)
+                Test()
+            }
+        }
     }
 }
 
 @Composable
-fun Greeting(playClick: () -> Unit, isInstalled: Boolean, isDownloading: Boolean, progress: Int) {
+fun Test() {
     Column(
         modifier = Modifier
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "Obshchalka",
-        )
-        Spacer(modifier = Modifier.height(5.dp))
-
-        if (!isDownloading) {
-            Button(onClick = { playClick.invoke() }) {
-                Text(text = if (isInstalled) "Play" else "Install")
-            }
-        }
-
-        if (isDownloading) {
-            Box(
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(progress = progress / 100f)
-                Text(text = progress.toString())
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    FrankuziStoreTheme {
-        Greeting({}, true,true, 30)
+        Text(text = "Salut all")
     }
 }

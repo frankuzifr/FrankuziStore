@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">FrankuziStore</string>
+    <string name="applications_list">Applications</string>
+    <string name="my_info">About me</string>
 </resources>

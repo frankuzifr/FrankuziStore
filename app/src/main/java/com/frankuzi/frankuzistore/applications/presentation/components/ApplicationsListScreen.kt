@@ -5,50 +5,62 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestState
 import com.frankuzi.frankuzistore.applications.presentation.StoreViewModel
-import com.frankuzi.frankuzistore.utils.myLog
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @Composable
 fun ApplicationsListScreen(viewModel: StoreViewModel) {
-    var getApplicationState = viewModel.getApplicationState.collectAsStateWithLifecycle()
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { TopAppBar(title = {
-            Text(text = "My applications")
-        })},
-        bottomBar = {
-            BottomBar()
+    val getApplicationState = viewModel.applicationsInfo.collectAsStateWithLifecycle()
+    var isLoading by remember {
+        mutableStateOf(false)
+    }
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isLoading)
+    SwipeRefresh(
+        state = swipeRefreshState,
+        onRefresh = {
+            viewModel.updateApplicationsInfo()
+        },
+        indicator = { state, refreshTrigger ->
+            SwipeRefreshIndicator(
+                state = state,
+                refreshTriggerDistance = refreshTrigger
+            )
         }
     ) {
-        it
-
         when (val applicationsRequestState = getApplicationState.value) {
-            is ApplicationsRequestState.Error -> ErrorView(applicationsRequestStateSuccess = applicationsRequestState)
-            ApplicationsRequestState.Loading -> LoadingView()
-            is ApplicationsRequestState.Success -> SuccessView(
-                applicationsRequestStateSuccess = applicationsRequestState,
-                viewModel = viewModel
-            )
+            is ApplicationsRequestState.Error -> {
+                isLoading = false
+                ErrorView(applicationsRequestStateSuccess = applicationsRequestState)
+            }
+            ApplicationsRequestState.Loading -> {
+                isLoading = true
+                LoadingView()
+            }
+            is ApplicationsRequestState.Success -> {
+                isLoading = false
+                SuccessView(
+                    applicationsRequestStateSuccess = applicationsRequestState,
+                    viewModel = viewModel
+                )
+            }
         }
     }
 }
 
 @Composable
 fun SuccessView(applicationsRequestStateSuccess: ApplicationsRequestState.Success, viewModel: StoreViewModel) {
-
     val applications = applicationsRequestStateSuccess.applications.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         verticalArrangement = Arrangement.spacedBy(15.dp),
@@ -64,6 +76,10 @@ fun SuccessView(applicationsRequestStateSuccess: ApplicationsRequestState.Succes
                 applicationState = application.applicationState,
                 onDownloadButtonClick = {
                     viewModel.downloadApplication(application)
+                },
+                onPlayButtonClick = {
+                    val intent = context.packageManager.getLaunchIntentForPackage(application.packageName)
+                    context.startActivity(intent)
                 }
             )
         }
@@ -81,9 +97,6 @@ fun ErrorView(applicationsRequestStateSuccess: ApplicationsRequestState.Error) {
         Text(
             text = "${applicationsRequestStateSuccess.message}",
         )
-//        Button(onClick = { viewModel.getApplications() }) {
-//            Text(text = "Update")
-//        }
     }
 }
 
@@ -97,40 +110,6 @@ fun LoadingView() {
     ) {
         Text(
             text = "Loading",
-        )
-    }
-}
-
-@Composable
-fun BottomBar() {
-    val selectedIndex = remember {
-        mutableStateOf(0)
-    }
-    BottomNavigation(elevation = 10.dp) {
-        
-        BottomNavigationItem(
-            icon = {
-                Icon(imageVector = Icons.Default.Home, "Applications")
-            },
-            label = {
-                Text(text = "Applications")
-            },
-            selected = selectedIndex.value == 0,
-            onClick = {
-                selectedIndex.value = 0
-            }
-        )
-        BottomNavigationItem(
-            icon = {
-                Icon(imageVector = Icons.Default.AccountBox, "Info")
-            },
-            label = {
-                Text(text = "Info")
-            },
-            selected = selectedIndex.value == 1,
-            onClick = {
-                selectedIndex.value = 1
-            }
         )
     }
 }
