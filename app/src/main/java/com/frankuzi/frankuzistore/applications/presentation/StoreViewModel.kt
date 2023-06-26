@@ -25,6 +25,11 @@ class StoreViewModel @Inject constructor(
     val applicationsInfo = _applicationsInfo.asStateFlow()
 
     private var _job = Job()
+        get() {
+            if (field.isCancelled)
+                field = Job()
+            return field
+        }
 
     fun updateApplicationsInfo() {
         _applicationsInfo = storeRepository.updateApplicationsInfo()
@@ -33,7 +38,7 @@ class StoreViewModel @Inject constructor(
     fun downloadApplication(application: ApplicationInfo) {
         var applications = listOf<ApplicationInfo>()
         when (val applicationsRequestState = applicationsInfo.value) {
-            is ApplicationsRequestState.Error -> {
+            is ApplicationsRequestState.Failed -> {
 
             }
             ApplicationsRequestState.Loading -> {
@@ -67,14 +72,13 @@ class StoreViewModel @Inject constructor(
             },
             onError = {
                 _applicationsInfo.update {
-                    ApplicationsRequestState.Error("Error")
+                    ApplicationsRequestState.Failed("Error")
                 }
             }
         )
     }
 
     fun startActualizeApplications() {
-        _job = Job()
         viewModelScope.launch(Dispatchers.IO + _job) {
             while (true) {
                 withContext(Dispatchers.IO) {

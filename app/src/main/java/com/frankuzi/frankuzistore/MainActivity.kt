@@ -1,18 +1,27 @@
 package com.frankuzi.frankuzistore
 
-import android.content.Context
 import android.os.Bundle
+import android.system.Os.close
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -24,11 +33,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.frankuzi.frankuzistore.applications.domain.utils.Downloader
 import com.frankuzi.frankuzistore.applications.domain.utils.InstalledApplicationsChecker
+import com.frankuzi.frankuzistore.applications.presentation.AboutMeViewModel
 import com.frankuzi.frankuzistore.applications.presentation.Screen
 import com.frankuzi.frankuzistore.applications.presentation.StoreViewModel
+import com.frankuzi.frankuzistore.applications.presentation.components.AboutMeScreen
 import com.frankuzi.frankuzistore.applications.presentation.components.ApplicationsListScreen
 import com.frankuzi.frankuzistore.ui.theme.FrankuziStoreTheme
+import com.frankuzi.frankuzistore.ui.theme.White
+import com.frankuzi.frankuzistore.ui.theme.defaultBackground
+import com.frankuzi.frankuzistore.ui.theme.defaultSurface
 import com.frankuzi.frankuzistore.utils.LifecycleEventListener
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -42,7 +57,27 @@ class MainActivity : ComponentActivity() {
         setContent {
             FrankuziStoreTheme {
 
+                val systemUiController = rememberSystemUiController()
+                val isSystemInDarkTheme = isSystemInDarkTheme()
+
+                DisposableEffect(systemUiController, isSystemInDarkTheme) {
+                    if (isSystemInDarkTheme) {
+                        systemUiController.setSystemBarsColor(
+                            color = defaultBackground,
+                            darkIcons = false
+                        )
+                    } else {
+                        systemUiController.setSystemBarsColor(
+                            color = White,
+                            darkIcons = true
+                        )
+                    }
+
+                    onDispose {}
+                }
+
                 val storeViewModel = hiltViewModel<StoreViewModel>()
+                val aboutMeViewModel = hiltViewModel<AboutMeViewModel>()
 
                 LifecycleEventListener {event ->
                     when (event) {
@@ -57,14 +92,13 @@ class MainActivity : ComponentActivity() {
                 }
 
                 storeViewModel.updateApplicationsInfo()
+                aboutMeViewModel.updateInfo()
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-
-//                    ApplicationsListScreen(viewModel = storeViewModel, context = this)
-                    Content(viewModel = storeViewModel)
+                    Content(storeViewModel = storeViewModel, aboutMeViewModel = aboutMeViewModel)
                 }
             }
         }
@@ -72,7 +106,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Content(viewModel: StoreViewModel) {
+fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) {
     val navController = rememberNavController()
     val items = listOf(
         Screen.ApplicationsList,
@@ -84,9 +118,15 @@ fun Content(viewModel: StoreViewModel) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        topBar = { TopAppBar(title = {
-            Text(text = appBarTitle)
-        })},
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(text = appBarTitle)
+                },
+                elevation = 0.dp,
+                backgroundColor = defaultBackground,
+            )
+        },
         bottomBar = {
             BottomNavigation {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -120,11 +160,11 @@ fun Content(viewModel: StoreViewModel) {
         NavHost(navController = navController, startDestination = Screen.ApplicationsList.route, Modifier.padding(innerPadding)) {
             composable(Screen.ApplicationsList.route) {
                 appBarTitle = stringResource(id = Screen.ApplicationsList.resourceId)
-                ApplicationsListScreen(viewModel = viewModel)
+                ApplicationsListScreen(viewModel = storeViewModel)
             }
             composable(Screen.MyInfo.route) {
                 appBarTitle = stringResource(id = Screen.MyInfo.resourceId)
-                Test()
+                AboutMeScreen(viewModel = aboutMeViewModel)
             }
         }
     }

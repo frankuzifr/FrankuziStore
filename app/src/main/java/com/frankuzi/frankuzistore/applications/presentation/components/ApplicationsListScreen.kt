@@ -37,7 +37,7 @@ fun ApplicationsListScreen(viewModel: StoreViewModel) {
         }
     ) {
         when (val applicationsRequestState = getApplicationState.value) {
-            is ApplicationsRequestState.Error -> {
+            is ApplicationsRequestState.Failed -> {
                 isLoading = false
                 ErrorView(applicationsRequestStateSuccess = applicationsRequestState)
             }
@@ -87,7 +87,7 @@ fun SuccessView(applicationsRequestStateSuccess: ApplicationsRequestState.Succes
 }
 
 @Composable
-fun ErrorView(applicationsRequestStateSuccess: ApplicationsRequestState.Error) {
+fun ErrorView(applicationsRequestStateSuccess: ApplicationsRequestState.Failed) {
     Column(
         modifier = Modifier
             .fillMaxSize(),

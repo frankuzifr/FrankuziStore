@@ -1,14 +1,11 @@
 package com.frankuzi.frankuzistore.applications.data.repository
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import com.frankuzi.frankuzistore.applications.data.remote.StoreApi
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestState
 import com.frankuzi.frankuzistore.applications.domain.repository.StoreRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
 class StoreRepositoryImpl @Inject constructor(
@@ -40,7 +37,7 @@ class StoreRepositoryImpl @Inject constructor(
                 _applications.value = ApplicationsRequestState.Success(MutableStateFlow(applicationsInfo))
             }
             .addOnFailureListener { error ->
-                _applications.value = ApplicationsRequestState.Error(error.message)
+                _applications.value = ApplicationsRequestState.Failed(error.message)
             }
 
         return _applications

@@ -1,6 +1,8 @@
 package com.frankuzi.frankuzistore.di
 
+import com.frankuzi.frankuzistore.applications.data.repository.AboutMeRepositoryImpl
 import com.frankuzi.frankuzistore.applications.data.repository.StoreRepositoryImpl
+import com.frankuzi.frankuzistore.applications.domain.repository.AboutMeRepository
 import com.frankuzi.frankuzistore.applications.domain.repository.StoreRepository
 import dagger.Binds
 import dagger.Module
@@ -16,4 +18,10 @@ abstract class RepositoryModule {
     abstract fun bindStoreRepository(
         storeRepositoryImpl: StoreRepositoryImpl
     ): StoreRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAboutMeRepository(
+        aboutMeRepositoryImpl: AboutMeRepositoryImpl
+    ): AboutMeRepository
 }
