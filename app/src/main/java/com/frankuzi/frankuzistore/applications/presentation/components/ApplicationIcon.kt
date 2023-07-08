@@ -1,5 +1,6 @@
 package com.frankuzi.frankuzistore.applications.presentation.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,10 +27,14 @@ import com.frankuzi.frankuzistore.applications.presentation.ApplicationState
 import com.frankuzi.frankuzistore.R
 
 @Composable
-fun ApplicationIcon(applicationName: String, imagePath: String, applicationState: ApplicationState, onDownloadButtonClick: () -> Unit, onPlayButtonClick: () -> Unit) {
+fun ApplicationIcon(applicationName: String, imagePath: String, applicationState: ApplicationState, onIconClick: () -> Unit, onDownloadButtonClick: () -> Unit, onPlayButtonClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .width(100.dp),
+            .width(100.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .clickable {
+                onIconClick.invoke()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

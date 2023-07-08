@@ -1,36 +1,33 @@
 package com.frankuzi.frankuzistore
 
+import android.app.Activity
 import android.os.Bundle
-import android.system.Os.close
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
 import com.frankuzi.frankuzistore.applications.domain.utils.Downloader
 import com.frankuzi.frankuzistore.applications.domain.utils.InstalledApplicationsChecker
 import com.frankuzi.frankuzistore.applications.presentation.AboutMeViewModel
@@ -41,10 +38,11 @@ import com.frankuzi.frankuzistore.applications.presentation.components.Applicati
 import com.frankuzi.frankuzistore.ui.theme.FrankuziStoreTheme
 import com.frankuzi.frankuzistore.ui.theme.White
 import com.frankuzi.frankuzistore.ui.theme.defaultBackground
-import com.frankuzi.frankuzistore.ui.theme.defaultSurface
 import com.frankuzi.frankuzistore.utils.LifecycleEventListener
+import com.frankuzi.frankuzistore.utils.myLog
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -105,8 +103,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val navController = rememberNavController()
     val items = listOf(
         Screen.ApplicationsList,
@@ -115,69 +116,129 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
     var appBarTitle by remember {
         mutableStateOf("")
     }
+    val sheetState = rememberBottomSheetState(
+        initialValue = BottomSheetValue.Collapsed
+    )
+    val scaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = sheetState
+    )
+    val bottomSheetRadius by remember {
+        mutableStateOf(if (sheetState.isExpanded) 20 * sheetState.progress else 20 - 20 * sheetState.progress)
+    }
+    var selectedApplication: ApplicationInfo? by remember {
+        mutableStateOf(null)
+    }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = appBarTitle)
-                },
-                elevation = 0.dp,
-                backgroundColor = defaultBackground,
-            )
-        },
-        bottomBar = {
-            BottomNavigation {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-                items.forEach{ screen ->
-                    BottomNavigationItem(
-                        icon = {
-                            Icon(imageVector = screen.icon, contentDescription = null)
-                        },
-                        label = {
-                            Text(text = stringResource(id = screen.resourceId))
-                        },
-                        selected = currentDestination?.hierarchy?.any {
-                            it.route == screen.route
-                        } == true,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+    BackHandler {
+        if (sheetState.isExpanded) {
+            coroutineScope.launch {
+                sheetState.collapse()
+            }
+            return@BackHandler
+        }
+
+        val activity = (context as? Activity)
+        activity?.finish()
+    }
+
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        sheetContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                selectedApplication?.let {
+                    Text(
+                        text = it.applicationName,
+                        fontSize = 60.sp
                     )
                 }
             }
-        }
-    ) { innerPadding ->
-
-        NavHost(navController = navController, startDestination = Screen.ApplicationsList.route, Modifier.padding(innerPadding)) {
-            composable(Screen.ApplicationsList.route) {
-                appBarTitle = stringResource(id = Screen.ApplicationsList.resourceId)
-                ApplicationsListScreen(viewModel = storeViewModel)
-            }
-            composable(Screen.MyInfo.route) {
-                appBarTitle = stringResource(id = Screen.MyInfo.resourceId)
-                AboutMeScreen(viewModel = aboutMeViewModel)
-            }
-        }
-    }
-}
-
-@Composable
-fun Test() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        },
+        sheetPeekHeight = 0.dp,
+        sheetShape = RoundedCornerShape(topStart = bottomSheetRadius, topEnd = bottomSheetRadius),
+        sheetElevation = 0.dp,
     ) {
-        Text(text = "Salut all")
+
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize(),
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(text = appBarTitle)
+                    },
+                    elevation = 0.dp,
+                    backgroundColor = defaultBackground,
+                )
+            },
+            bottomBar = {
+                BottomNavigation(
+                    elevation = 0.dp
+                ) {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navBackStackEntry?.destination
+                    items.forEach{ screen ->
+                        BottomNavigationItem(
+                            icon = {
+                                Icon(imageVector = screen.icon, contentDescription = null)
+                            },
+                            label = {
+                                Text(text = stringResource(id = screen.resourceId))
+                            },
+                            selected = currentDestination?.hierarchy?.any {
+                                it.route == screen.route
+                            } == true,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        ) { innerPadding ->
+
+            NavHost(
+                navController = navController,
+                startDestination = Screen.ApplicationsList.route, Modifier.padding(innerPadding)
+            ) {
+                composable(Screen.ApplicationsList.route) {
+                    appBarTitle = stringResource(id = Screen.ApplicationsList.resourceId)
+                    ApplicationsListScreen(
+                        getApplicationState = storeViewModel.applicationsInfo.collectAsStateWithLifecycle(),
+                        onRefreshListener = {
+                            storeViewModel.updateApplicationsInfo()
+                        },
+                        onIconClick = { applicationInfo ->
+                            selectedApplication = applicationInfo
+                            coroutineScope.launch {
+                                sheetState.expand()
+                            }
+                        },
+                        onDownloadButtonClick = { applicationInfo ->
+                            storeViewModel.downloadApplication(applicationInfo)
+                        },
+                        onPlayButtonClick = { applicationInfo ->
+                            val intent = context.packageManager.getLaunchIntentForPackage(applicationInfo.packageName)
+                            context.startActivity(intent)
+                        },
+                        sheetState = sheetState,
+                        scaffoldState = scaffoldState
+                    )
+                }
+                composable(Screen.MyInfo.route) {
+                    appBarTitle = stringResource(id = Screen.MyInfo.resourceId)
+                    AboutMeScreen(viewModel = aboutMeViewModel)
+                }
+            }
+        }
     }
 }

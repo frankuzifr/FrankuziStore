@@ -4,22 +4,33 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestState
-import com.frankuzi.frankuzistore.applications.presentation.StoreViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ApplicationsListScreen(viewModel: StoreViewModel) {
-    val getApplicationState = viewModel.applicationsInfo.collectAsStateWithLifecycle()
+fun ApplicationsListScreen(
+    getApplicationState: State<ApplicationsRequestState>,
+    onRefreshListener: () -> Unit,
+    onIconClick: (ApplicationInfo) -> Unit,
+    onDownloadButtonClick: (ApplicationInfo) -> Unit,
+    onPlayButtonClick: (ApplicationInfo) -> Unit,
+    sheetState: BottomSheetState,
+    scaffoldState: BottomSheetScaffoldState
+) {
     var isLoading by remember {
         mutableStateOf(false)
     }
@@ -27,7 +38,7 @@ fun ApplicationsListScreen(viewModel: StoreViewModel) {
     SwipeRefresh(
         state = swipeRefreshState,
         onRefresh = {
-            viewModel.updateApplicationsInfo()
+            onRefreshListener.invoke()
         },
         indicator = { state, refreshTrigger ->
             SwipeRefreshIndicator(
@@ -49,17 +60,26 @@ fun ApplicationsListScreen(viewModel: StoreViewModel) {
                 isLoading = false
                 SuccessView(
                     applicationsRequestStateSuccess = applicationsRequestState,
-                    viewModel = viewModel
+                    onIconClick = onIconClick,
+                    onDownloadButtonClick = onDownloadButtonClick,
+                    onPlayButtonClick = onPlayButtonClick,
+                    scaffoldState = scaffoldState
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun SuccessView(applicationsRequestStateSuccess: ApplicationsRequestState.Success, viewModel: StoreViewModel) {
+fun SuccessView(
+    applicationsRequestStateSuccess: ApplicationsRequestState.Success,
+    onIconClick: (ApplicationInfo) -> Unit,
+    onDownloadButtonClick: (ApplicationInfo) -> Unit,
+    onPlayButtonClick: (ApplicationInfo) -> Unit,
+    scaffoldState: BottomSheetScaffoldState
+) {
     val applications = applicationsRequestStateSuccess.applications.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
@@ -74,12 +94,14 @@ fun SuccessView(applicationsRequestStateSuccess: ApplicationsRequestState.Succes
                 applicationName = application.applicationName,
                 imagePath = application.imageUrl,
                 applicationState = application.applicationState,
+                onIconClick = {
+                    onIconClick.invoke(application)
+                },
                 onDownloadButtonClick = {
-                    viewModel.downloadApplication(application)
+                    onDownloadButtonClick.invoke(application)
                 },
                 onPlayButtonClick = {
-                    val intent = context.packageManager.getLaunchIntentForPackage(application.packageName)
-                    context.startActivity(intent)
+                    onPlayButtonClick.invoke(application)
                 }
             )
         }
