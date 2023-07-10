@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -70,8 +71,17 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
                     .fillMaxHeight()
                     .width(160.dp)
             ) {
-                val borderWidth = 2.dp
-//
+                val borderWidth = 4.dp
+                val tripleColorsBrush = remember {
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFFFFFFFF),
+                            Color(0xFF0023FF),
+                            Color(0xFFFF0000),
+                        )
+                    )
+                }
+
                 AsyncImage(
                     model = aboutMeInfo.imageUrl,
                     contentDescription = null,
@@ -82,12 +92,19 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
                         .fillMaxSize()
                         .padding(10.dp)
                         .border(
-                            BorderStroke(borderWidth, Color.White),
+                            BorderStroke(borderWidth, tripleColorsBrush),
                             CircleShape
                         )
                         .padding(borderWidth)
                         .clip(CircleShape)
                         .align(Alignment.Center)
+                        .clickable {
+                            val intent = Intent().apply {
+                                action = Intent.ACTION_VIEW
+                                data = Uri.parse("https://vk.com/lavnichuk")
+                            }
+                            context.startActivity(intent)
+                        }
                 )
             }
             Box(
@@ -131,7 +148,7 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
                     }
                     TextButton(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(aboutMeInfo.githubLink));
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(aboutMeInfo.githubLink))
                             context.startActivity(intent);
                         },
                         modifier = Modifier
@@ -156,9 +173,3 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
         }
     }
 }
-//
-//@Preview
-//@Composable
-//fun AboutMeScreenPreview() {
-//    AboutMeScreen()
-//}

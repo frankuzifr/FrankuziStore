@@ -8,15 +8,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.FileProvider
 import com.frankuzi.frankuzistore.BuildConfig
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
+import com.frankuzi.frankuzistore.utils.myLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -58,7 +61,7 @@ class DownloadHandlerImpl(
         val request = DownloadManager.Request(downloadUri)
             .setMimeType(MIME_TYPE)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION)
-            .setTitle("${applicationInfo.applicationName} downloading")
+            .setTitle("${applicationInfo.applicationName}")
             .setDestinationUri(uri)
 
         val downloadId = _downloadManager.enqueue(request)

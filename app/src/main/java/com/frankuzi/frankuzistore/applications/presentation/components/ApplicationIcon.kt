@@ -144,7 +144,7 @@ fun ApplicationIcon(applicationName: String, imagePath: String, applicationState
                     }
                 },
                 maxLines = 1,
-                fontSize = 12.sp
+                fontSize = 10.sp
             )
         }
     }

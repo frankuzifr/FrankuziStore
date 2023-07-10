@@ -1,12 +1,13 @@
 package com.frankuzi.frankuzistore
 
 import android.app.Activity
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +40,6 @@ import com.frankuzi.frankuzistore.ui.theme.FrankuziStoreTheme
 import com.frankuzi.frankuzistore.ui.theme.White
 import com.frankuzi.frankuzistore.ui.theme.defaultBackground
 import com.frankuzi.frankuzistore.utils.LifecycleEventListener
-import com.frankuzi.frankuzistore.utils.myLog
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -119,7 +119,7 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
     val sheetState = rememberBottomSheetState(
         initialValue = BottomSheetValue.Collapsed
     )
-    val scaffoldState = rememberBottomSheetScaffoldState(
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = sheetState
     )
     val bottomSheetRadius by remember {
@@ -141,8 +141,30 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
         activity?.finish()
     }
 
+    var dialogVisibility by remember {
+        mutableStateOf(false)
+    }
+
+    val scaffoldState = rememberScaffoldState()
+
+    if (dialogVisibility)
+        Dialog(
+            title = "Dialog 1",
+            description = "Dialog 1",
+            onConfirmClick = {
+                context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
+                dialogVisibility = false
+            },
+            onDismissClick = {
+                dialogVisibility = false
+            },
+            onDismissRequest = {
+                dialogVisibility = false
+            }
+        )
+
     BottomSheetScaffold(
-        scaffoldState = scaffoldState,
+        scaffoldState = bottomSheetScaffoldState,
         sheetContent = {
             Box(
                 modifier = Modifier
@@ -163,6 +185,7 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
     ) {
 
         Scaffold(
+            scaffoldState = scaffoldState,
             modifier = Modifier
                 .fillMaxSize(),
             topBar = {
@@ -176,7 +199,7 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
             },
             bottomBar = {
                 BottomNavigation(
-                    elevation = 0.dp
+                    elevation = 4.dp
                 ) {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
@@ -212,8 +235,9 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
             ) {
                 composable(Screen.ApplicationsList.route) {
                     appBarTitle = stringResource(id = Screen.ApplicationsList.resourceId)
+                    val state by storeViewModel.applicationsInfo.collectAsStateWithLifecycle()
                     ApplicationsListScreen(
-                        getApplicationState = storeViewModel.applicationsInfo.collectAsStateWithLifecycle(),
+                        getApplicationState = state,
                         onRefreshListener = {
                             storeViewModel.updateApplicationsInfo()
                         },
@@ -222,16 +246,22 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                             coroutineScope.launch {
                                 sheetState.expand()
                             }
-                        },
+                        },~
                         onDownloadButtonClick = { applicationInfo ->
-                            storeViewModel.downloadApplication(applicationInfo)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                if (!context.packageManager.canRequestPackageInstalls()) {
+                                    dialogVisibility = true
+                                } else {
+                                    storeViewModel.downloadApplication(applicationInfo)
+                                }
+                            }
                         },
                         onPlayButtonClick = { applicationInfo ->
                             val intent = context.packageManager.getLaunchIntentForPackage(applicationInfo.packageName)
                             context.startActivity(intent)
                         },
                         sheetState = sheetState,
-                        scaffoldState = scaffoldState
+                        scaffoldState = bottomSheetScaffoldState
                     )
                 }
                 composable(Screen.MyInfo.route) {
@@ -241,4 +271,52 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
             }
         }
     }
+}
+
+@Composable
+fun Dialog(
+    title: String,
+    description: String,
+    onConfirmClick: () -> Unit,
+    onDismissClick: () -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    AlertDialog(
+        shape = RoundedCornerShape(8.dp),
+        onDismissRequest = {
+            onDismissRequest.invoke()
+        },
+        confirmButton = {
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = MaterialTheme.colors.surface
+                ),
+                onClick = {
+                    onConfirmClick.invoke()
+                },
+                elevation = ButtonDefaults.elevation(0.dp)
+            ) {
+                Text(text = "Yes")
+            }
+        },
+        dismissButton = {
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = MaterialTheme.colors.surface
+                ),
+                onClick = {
+                    onDismissClick.invoke()
+                },
+                elevation = ButtonDefaults.elevation(0.dp)
+            ) {
+                Text(text = "No")
+            }
+        },
+        title = {
+            Text(text = title)
+        },
+        text = {
+            Text(text = description)
+        }
+    )
 }
