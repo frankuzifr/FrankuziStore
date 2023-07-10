@@ -246,7 +246,7 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                             coroutineScope.launch {
                                 sheetState.expand()
                             }
-                        },~
+                        },
                         onDownloadButtonClick = { applicationInfo ->
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 if (!context.packageManager.canRequestPackageInstalls()) {
