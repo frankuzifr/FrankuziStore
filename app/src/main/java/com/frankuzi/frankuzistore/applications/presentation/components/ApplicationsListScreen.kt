@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +22,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 fun ApplicationsListScreen(
     getApplicationState: ApplicationsRequestState,
     onRefreshListener: () -> Unit,
-    onIconClick: (ApplicationInfo) -> Unit,
+    onIconClick: (Int) -> Unit,
     onDownloadButtonClick: (ApplicationInfo) -> Unit,
     onPlayButtonClick: (ApplicationInfo) -> Unit,
     sheetState: BottomSheetState,
@@ -70,7 +71,7 @@ fun ApplicationsListScreen(
 @Composable
 fun SuccessView(
     applicationsRequestStateSuccess: ApplicationsRequestState.Success,
-    onIconClick: (ApplicationInfo) -> Unit,
+    onIconClick: (Int) -> Unit,
     onDownloadButtonClick: (ApplicationInfo) -> Unit,
     onPlayButtonClick: (ApplicationInfo) -> Unit,
     scaffoldState: BottomSheetScaffoldState
@@ -85,13 +86,13 @@ fun SuccessView(
             .fillMaxSize()
             .padding(start = 15.dp, end = 15.dp, top = 15.dp)
     ){
-        items(applications.value) { application ->
+        itemsIndexed(applications.value) { index, application ->
             ApplicationIcon(
                 applicationName = application.applicationName,
                 imagePath = application.imageUrl,
                 applicationState = application.applicationState,
                 onIconClick = {
-                    onIconClick.invoke(application)
+                    onIconClick.invoke(index)
                 },
                 onDownloadButtonClick = {
                     onDownloadButtonClick.invoke(application)

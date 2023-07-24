@@ -8,15 +8,26 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,10 +39,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
+import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestState
 import com.frankuzi.frankuzistore.applications.domain.utils.Downloader
 import com.frankuzi.frankuzistore.applications.domain.utils.InstalledApplicationsChecker
 import com.frankuzi.frankuzistore.applications.presentation.AboutMeViewModel
+import com.frankuzi.frankuzistore.applications.presentation.ApplicationState
 import com.frankuzi.frankuzistore.applications.presentation.Screen
 import com.frankuzi.frankuzistore.applications.presentation.StoreViewModel
 import com.frankuzi.frankuzistore.applications.presentation.components.AboutMeScreen
@@ -40,6 +54,7 @@ import com.frankuzi.frankuzistore.ui.theme.FrankuziStoreTheme
 import com.frankuzi.frankuzistore.ui.theme.White
 import com.frankuzi.frankuzistore.ui.theme.defaultBackground
 import com.frankuzi.frankuzistore.utils.LifecycleEventListener
+import com.frankuzi.frankuzistore.utils.myLog
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -47,6 +62,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         App.downloader = Downloader(this)
         App.installedApplicationsChecker = InstalledApplicationsChecker(this)
@@ -103,6 +119,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) {
@@ -127,6 +144,9 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
     }
     var selectedApplication: ApplicationInfo? by remember {
         mutableStateOf(null)
+    }
+    var selectedApplicationIndex by remember {
+        mutableStateOf(0)
     }
 
     BackHandler {
@@ -163,6 +183,7 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
             }
         )
 
+    val state by storeViewModel.applicationsInfo.collectAsStateWithLifecycle()
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContent = {
@@ -171,12 +192,29 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                selectedApplication?.let {
-                    Text(
-                        text = it.applicationName,
-                        fontSize = 60.sp
-                    )
-                }
+                BottomSheetContent(
+                    selectedApplicationIndex = selectedApplicationIndex,
+                    getApplicationState = state,
+                    onDownloadClick = { applicationInfo ->
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            if (!context.packageManager.canRequestPackageInstalls()) {
+                                dialogVisibility = true
+                            } else {
+                                storeViewModel.downloadApplication(applicationInfo)
+                            }
+                        }
+                    },
+                    onCancelClick = {
+
+                    },
+                    onPlayClick = { applicationInfo ->
+                        val intent = context.packageManager.getLaunchIntentForPackage(applicationInfo.packageName)
+                        context.startActivity(intent)
+                    },
+                    onDeleteClick = {
+
+                    }
+                )
             }
         },
         sheetPeekHeight = 0.dp,
@@ -235,14 +273,13 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
             ) {
                 composable(Screen.ApplicationsList.route) {
                     appBarTitle = stringResource(id = Screen.ApplicationsList.resourceId)
-                    val state by storeViewModel.applicationsInfo.collectAsStateWithLifecycle()
                     ApplicationsListScreen(
                         getApplicationState = state,
                         onRefreshListener = {
                             storeViewModel.updateApplicationsInfo()
                         },
-                        onIconClick = { applicationInfo ->
-                            selectedApplication = applicationInfo
+                        onIconClick = { applicationInfoIndex ->
+                            selectedApplicationIndex = applicationInfoIndex
                             coroutineScope.launch {
                                 sheetState.expand()
                             }
@@ -319,4 +356,209 @@ fun Dialog(
             Text(text = description)
         }
     )
+}
+
+@Composable
+fun BottomSheetContent(
+    selectedApplicationIndex: Int,
+    getApplicationState: ApplicationsRequestState,
+    onDownloadClick: (ApplicationInfo) -> Unit,
+    onPlayClick: (ApplicationInfo) -> Unit,
+    onCancelClick: (ApplicationInfo) -> Unit,
+    onDeleteClick: (ApplicationInfo) -> Unit
+) {
+    when(getApplicationState) {
+        is ApplicationsRequestState.Success -> {
+            val state = getApplicationState.applications.collectAsStateWithLifecycle()
+            val applicationInfo = state.value[selectedApplicationIndex]
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .drawBehind {
+
+                            val strokeWidth = 1f * density
+                            val y = size.height - strokeWidth / 2
+
+                            drawLine(
+                                Color.LightGray,
+                                Offset(0f, y),
+                                Offset(size.width, y),
+                                strokeWidth
+                            )
+                        }
+                        .padding(20.dp)
+                ) {
+                    AsyncImage(
+                        model = applicationInfo.imageUrl,
+                        contentDescription = null,
+                        placeholder = painterResource(id = R.drawable.baseline_image_24),
+                        error = painterResource(id = R.drawable.baseline_error_24),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .height(100.dp)
+                            .width(100.dp)
+                    )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 5.dp)
+                    ) {
+                        Text(
+                            text = applicationInfo.applicationName,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp
+                        )
+                        Spacer(modifier = Modifier.height(15.dp))
+                        when(val applicationState = applicationInfo.applicationState) {
+                            is ApplicationState.NotDownloaded -> {
+                                Button(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    onClick = {
+                                        onDownloadClick.invoke(applicationInfo)
+                                    }
+                                ) {
+                                    Text(text = "Download")
+                                }
+                            }
+                            is ApplicationState.Downloading -> {
+                                Row {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+
+                                        LinearProgressIndicator(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(40.dp)
+                                                .clip(RoundedCornerShape(20.dp)),
+                                            progress = applicationState.progress / 100f,
+                                            color = Color.Green
+                                        )
+                                        Text(
+                                            text = "${applicationState.progress}%",
+                                            textAlign = TextAlign.Center
+                                        )
+                                        IconButton(
+                                            modifier = Modifier
+                                                .size(30.dp)
+                                                .padding(end = 10.dp)
+                                                .align(Alignment.CenterEnd),
+                                            onClick = {
+                                                onCancelClick.invoke(applicationInfo)
+                                            }
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.baseline_close_24),
+                                                contentDescription = "Cancel download"
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            is ApplicationState.Installed -> {
+                                Row {
+                                    Button(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(40.dp)
+                                            .weight(1f),
+                                        shape = RoundedCornerShape(20.dp),
+                                        onClick = {
+                                            onPlayClick.invoke(applicationInfo)
+                                        }
+                                    ) {
+                                        Text(text = "Play")
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Button(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(40.dp)
+                                            .weight(1f),
+                                        shape = RoundedCornerShape(20.dp),
+                                        onClick = {
+                                            onDeleteClick.invoke(applicationInfo)
+                                        },
+                                    ) {
+                                        Text(text = "Delete")
+                                    }
+                                }
+                            }
+                            is ApplicationState.Downloaded -> {
+                                Button(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    onClick = {
+                                        onDownloadClick.invoke(applicationInfo)
+                                    }
+                                ) {
+                                    Text(text = "Download")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                ){
+                    item {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 10.dp),
+                            text = "sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
+                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
+                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
+                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
+                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
+                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
+                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
+                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
+                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
+                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
+                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
+                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
+                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
+                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
+                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
+                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
+                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
+                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
+                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
+                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
+                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
+                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
+                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
+                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
+                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
+                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
+                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
+                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
+                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
+                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
+                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
+                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
+                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
+                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
+                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
+                                    "                        \"adf na.,mdfn .amdnf ")
+                    }
+                }
+            }
+        }
+        else -> {}
+    }
 }
