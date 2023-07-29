@@ -2,6 +2,7 @@ package com.frankuzi.frankuzistore
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -27,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -184,6 +186,8 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
         )
 
     val state by storeViewModel.applicationsInfo.collectAsStateWithLifecycle()
+    val aboutMeRequestState by aboutMeViewModel.aboutMeInfo.collectAsStateWithLifecycle()
+
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContent = {
@@ -204,15 +208,18 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                             }
                         }
                     },
-                    onCancelClick = {
-
+                    onCancelClick = { applicationInfo ->
+                        storeViewModel.cancelDownload(applicationInfo)
                     },
                     onPlayClick = { applicationInfo ->
                         val intent = context.packageManager.getLaunchIntentForPackage(applicationInfo.packageName)
                         context.startActivity(intent)
                     },
-                    onDeleteClick = {
-
+                    onDeleteClick = { applicationInfo ->
+                        myLog("package:${applicationInfo.packageName}")
+                        val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE)
+                        intent.data = Uri.parse("package:${applicationInfo.packageName}")
+                        context.startActivity(intent)
                     }
                 )
             }
@@ -296,14 +303,12 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                         onPlayButtonClick = { applicationInfo ->
                             val intent = context.packageManager.getLaunchIntentForPackage(applicationInfo.packageName)
                             context.startActivity(intent)
-                        },
-                        sheetState = sheetState,
-                        scaffoldState = bottomSheetScaffoldState
+                        }
                     )
                 }
                 composable(Screen.MyInfo.route) {
                     appBarTitle = stringResource(id = Screen.MyInfo.resourceId)
-                    AboutMeScreen(viewModel = aboutMeViewModel)
+                    AboutMeScreen(aboutMeRequestState = aboutMeRequestState)
                 }
             }
         }
@@ -367,6 +372,9 @@ fun BottomSheetContent(
     onCancelClick: (ApplicationInfo) -> Unit,
     onDeleteClick: (ApplicationInfo) -> Unit
 ) {
+    val context = LocalContext.current
+    val language = Locale.current.language
+
     when(getApplicationState) {
         is ApplicationsRequestState.Success -> {
             val state = getApplicationState.applications.collectAsStateWithLifecycle()
@@ -409,7 +417,11 @@ fun BottomSheetContent(
                             .padding(top = 5.dp)
                     ) {
                         Text(
-                            text = applicationInfo.applicationName,
+                            text =
+                            if (language == "ru")
+                                applicationInfo.ruApplicationName
+                            else
+                                applicationInfo.applicationName,
                             fontWeight = FontWeight.Bold,
                             fontSize = 24.sp
                         )
@@ -518,43 +530,23 @@ fun BottomSheetContent(
                     item {
                         Text(
                             modifier = Modifier
-                                .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 10.dp),
-                            text = "sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
-                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
-                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
-                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
-                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
-                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
-                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
-                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
-                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
-                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
-                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
-                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
-                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
-                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
-                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
-                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
-                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
-                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
-                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
-                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
-                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
-                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
-                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
-                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
-                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
-                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
-                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
-                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
-                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
-                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
-                                    "                        \"adf na.,mdfn .amdnf sdasmkmfam kamfkmda.,fnmadn f,andmf, na,dnfma ndjfna dnf ,amdnf, namdfn andfnnb a,dnfb n,adf\" +\n" +
-                                    "                        \"adfman,dfmna,mdfna,mndf,mandf,mnam,dfnam,ndfmnamdnfman mdnfam,n f,\" +\n" +
-                                    "                        \"a dmnfa,m ndf,mandfm,namdn fmandf,mn a,dmfn a,mnf,amndfn am,fdn \" +\n" +
-                                    "                        \"a.dfna., dnfm.an dm.fn amndf,n adnf ,andf. manf \" +\n" +
-                                    "                        \"ad.mfn a.mdnf .amndf. na.fn a.fn \" +\n" +
-                                    "                        \"adf na.,mdfn .amdnf ")
+                                .padding(start = 20.dp, end = 20.dp, top = 10.dp),
+                            text =
+                            if (language == "ru")
+                                applicationInfo.ruDescription
+                            else
+                                applicationInfo.description
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        TextButton(
+                            modifier = Modifier
+                                .padding(start = 20.dp, end = 20.dp, bottom = 10.dp),
+                            onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(applicationInfo.githubUrl))
+                            context.startActivity(intent)
+                        }) {
+                            Text(text = "Open Github")
+                        }
                     }
                 }
             }

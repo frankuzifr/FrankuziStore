@@ -78,6 +78,29 @@ class StoreViewModel @Inject constructor(
         )
     }
 
+    fun cancelDownload(application: ApplicationInfo) {
+        App.downloader?.cancelDownload(application)
+        var applications = listOf<ApplicationInfo>()
+        when (val applicationsRequestState = applicationsInfo.value) {
+            is ApplicationsRequestState.Failed -> {
+
+            }
+            ApplicationsRequestState.Loading -> {
+
+            }
+            is ApplicationsRequestState.Success -> {
+                applications = applicationsRequestState.applications.value
+            }
+        }
+
+        val index = applications.indexOf(application)
+        applications[index].applicationState = ApplicationState.NotDownloaded
+
+        _applicationsInfo.update {
+            ApplicationsRequestState.Success(MutableStateFlow(applications))
+        }
+    }
+
     fun startActualizeApplications() {
         viewModelScope.launch(Dispatchers.IO + _job) {
             while (true) {

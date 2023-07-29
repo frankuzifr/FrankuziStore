@@ -3,12 +3,12 @@ package com.frankuzi.frankuzistore.applications.presentation.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
@@ -17,16 +17,13 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ApplicationsListScreen(
     getApplicationState: ApplicationsRequestState,
     onRefreshListener: () -> Unit,
     onIconClick: (Int) -> Unit,
     onDownloadButtonClick: (ApplicationInfo) -> Unit,
-    onPlayButtonClick: (ApplicationInfo) -> Unit,
-    sheetState: BottomSheetState,
-    scaffoldState: BottomSheetScaffoldState
+    onPlayButtonClick: (ApplicationInfo) -> Unit
 ) {
     var isLoading by remember {
         mutableStateOf(false)
@@ -59,24 +56,22 @@ fun ApplicationsListScreen(
                     applicationsRequestStateSuccess = getApplicationState,
                     onIconClick = onIconClick,
                     onDownloadButtonClick = onDownloadButtonClick,
-                    onPlayButtonClick = onPlayButtonClick,
-                    scaffoldState = scaffoldState
+                    onPlayButtonClick = onPlayButtonClick
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SuccessView(
     applicationsRequestStateSuccess: ApplicationsRequestState.Success,
     onIconClick: (Int) -> Unit,
     onDownloadButtonClick: (ApplicationInfo) -> Unit,
-    onPlayButtonClick: (ApplicationInfo) -> Unit,
-    scaffoldState: BottomSheetScaffoldState
+    onPlayButtonClick: (ApplicationInfo) -> Unit
 ) {
     val applications = applicationsRequestStateSuccess.applications.collectAsStateWithLifecycle()
+    val language = Locale.current.language
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
@@ -88,7 +83,11 @@ fun SuccessView(
     ){
         itemsIndexed(applications.value) { index, application ->
             ApplicationIcon(
-                applicationName = application.applicationName,
+                applicationName =
+                if (language == "ru")
+                    application.ruApplicationName
+                else
+                    application.applicationName,
                 imagePath = application.imageUrl,
                 applicationState = application.applicationState,
                 onIconClick = {

@@ -14,7 +14,6 @@ class StoreRepositoryImpl @Inject constructor(
 ) : StoreRepository {
 
     private var _applications = MutableStateFlow<ApplicationsRequestState>(ApplicationsRequestState.Loading)
-    //val applications: State<ApplicationsRequestState> = _applications
 
     override fun updateApplicationsInfo(): MutableStateFlow<ApplicationsRequestState> {
         _applications.value = ApplicationsRequestState.Loading
@@ -28,9 +27,12 @@ class StoreRepositoryImpl @Inject constructor(
                     applicationsInfo.add(ApplicationInfo(
                         packageName = document.data["packageName"].toString(),
                         applicationName = document.data["applicationName"].toString(),
+                        ruApplicationName = document.data["ruApplicationName"].toString(),
                         description = document.data["description"].toString(),
+                        ruDescription = document.data["ruDescription"].toString(),
                         downloadUrl = document.data["downloadUrl"].toString(),
                         imageUrl = document.data["imageUrl"].toString(),
+                        githubUrl = document.data["githubUrl"].toString(),
                     ))
                 }
 

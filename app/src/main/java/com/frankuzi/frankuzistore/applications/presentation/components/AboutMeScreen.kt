@@ -34,13 +34,11 @@ import com.frankuzi.frankuzistore.applications.domain.model.AboutMeRequestState
 import com.frankuzi.frankuzistore.applications.presentation.AboutMeViewModel
 
 @Composable
-fun AboutMeScreen(viewModel: AboutMeViewModel) {
+fun AboutMeScreen(aboutMeRequestState: AboutMeRequestState) {
 
-    val aboutMeRequestState = viewModel.aboutMeInfo.collectAsStateWithLifecycle()
-
-    when (val state = aboutMeRequestState.value) {
+    when (aboutMeRequestState) {
         is AboutMeRequestState.Success -> {
-            SuccessScreen(aboutMeInfo = state.aboutMeInfo)
+            SuccessScreen(aboutMeInfo = aboutMeRequestState.aboutMeInfo)
         }
         is AboutMeRequestState.Failed -> {
 
