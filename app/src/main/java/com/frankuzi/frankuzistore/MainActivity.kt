@@ -10,6 +10,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,6 +36,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -278,7 +285,27 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                 navController = navController,
                 startDestination = Screen.ApplicationsList.route, Modifier.padding(innerPadding)
             ) {
-                composable(Screen.ApplicationsList.route) {
+                composable(
+                    route = Screen.ApplicationsList.route,
+                    enterTransition = {
+                        when (initialState.destination.route) {
+                            Screen.MyInfo.route -> {
+                                slideInHorizontally(initialOffsetX = { -1500 }, animationSpec = tween(400))
+                            }
+
+                            else -> null
+                        }
+                    },
+                    exitTransition = {
+                        when (targetState.destination.route) {
+                            Screen.MyInfo.route -> {
+                                slideOutHorizontally(targetOffsetX = { -1500 }, animationSpec = tween(400))
+                            }
+
+                            else -> null
+                        }
+                    }
+                ) {
                     appBarTitle = stringResource(id = Screen.ApplicationsList.resourceId)
                     ApplicationsListScreen(
                         getApplicationState = state,
@@ -306,7 +333,27 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                         }
                     )
                 }
-                composable(Screen.MyInfo.route) {
+                composable(
+                    route = Screen.MyInfo.route,
+                    enterTransition = {
+                        when (initialState.destination.route) {
+                            Screen.ApplicationsList.route -> {
+                                slideInHorizontally(initialOffsetX = { 1500 }, animationSpec = tween(400))
+                            }
+
+                            else -> null
+                        }
+                    },
+                    exitTransition = {
+                        when (targetState.destination.route) {
+                            Screen.ApplicationsList.route -> {
+                                slideOutHorizontally(targetOffsetX = { 1500 }, animationSpec = tween(400))
+                            }
+
+                            else -> null
+                        }
+                    }
+                ) {
                     appBarTitle = stringResource(id = Screen.MyInfo.resourceId)
                     AboutMeScreen(aboutMeRequestState = aboutMeRequestState)
                 }

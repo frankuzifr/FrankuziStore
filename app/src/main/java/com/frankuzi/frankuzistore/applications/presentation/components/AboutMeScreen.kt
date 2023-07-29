@@ -99,7 +99,7 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
                         .clickable {
                             val intent = Intent().apply {
                                 action = Intent.ACTION_VIEW
-                                data = Uri.parse("https://vk.com/lavnichuk")
+                                data = Uri.parse(aboutMeInfo.socialLink)
                             }
                             context.startActivity(intent)
                         }

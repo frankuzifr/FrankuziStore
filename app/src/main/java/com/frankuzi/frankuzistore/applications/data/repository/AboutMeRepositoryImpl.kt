@@ -32,6 +32,7 @@ class AboutMeRepositoryImpl @Inject constructor(
                         name = document.data["name"].toString(),
                         imageUrl = document.data["imageUrl"].toString(),
                         email = document.data["email"].toString(),
+                        socialLink = document.data["socialLink"].toString(),
                         githubLink = document.data["githubLink"].toString(),
                         description = document.data["description"].toString()
                     )
