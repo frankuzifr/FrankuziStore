@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FrankuziStore</string>
+    <string name="applications_list">Приложения</string>
+    <string name="my_info">Обо мне</string>
+    <string name="download">Загрузить</string>
+    <string name="downloading">%1$s загружается</string>
+    <string name="loading">Загрузка</string>
+    <string name="play">Играть</string>
+    <string name="delete">Удалить</string>
+    <string name="error">Возникла ошибка</string>
+    <string name="try_again">Повторить</string>
+    <string name="open_github">Открыть Github</string>
+    <string name="my_github">Мой Github</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="permission_required">Необходимо разрешение</string>
+    <string name="normal_operation_application">Для нормальной работы приложения, необходимо выдать разрешение на установку приложений</string>
+    <string name="email_was_copied_clipboard">Почта скопирована в буфер обмена</string>
+</resources>

@@ -10,9 +10,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.AnimatedContentScope
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -32,11 +29,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -149,13 +144,10 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
         bottomSheetState = sheetState
     )
     val bottomSheetRadius by remember {
-        mutableStateOf(if (sheetState.isExpanded) 20 * sheetState.progress else 20 - 20 * sheetState.progress)
-    }
-    var selectedApplication: ApplicationInfo? by remember {
-        mutableStateOf(null)
+        mutableFloatStateOf(if (sheetState.isExpanded) 20 * sheetState.progress else 20 - 20 * sheetState.progress)
     }
     var selectedApplicationIndex by remember {
-        mutableStateOf(0)
+        mutableIntStateOf(0)
     }
 
     BackHandler {
@@ -178,15 +170,17 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
 
     if (dialogVisibility)
         Dialog(
-            title = "Dialog 1",
-            description = "Dialog 1",
+            title = stringResource(id = R.string.permission_required),
+            description = stringResource(id = R.string.normal_operation_application),
             onConfirmClick = {
                 context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
                 dialogVisibility = false
             },
+            confirmText = stringResource(id = R.string.yes),
             onDismissClick = {
                 dialogVisibility = false
             },
+            dismissText = stringResource(id = R.string.no),
             onDismissRequest = {
                 dialogVisibility = false
             }
@@ -355,7 +349,10 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                     }
                 ) {
                     appBarTitle = stringResource(id = Screen.MyInfo.resourceId)
-                    AboutMeScreen(aboutMeRequestState = aboutMeRequestState)
+                    AboutMeScreen(
+                        aboutMeRequestState = aboutMeRequestState,
+                        onTryAgain = aboutMeViewModel::updateInfo
+                    )
                 }
             }
         }
@@ -367,7 +364,9 @@ fun Dialog(
     title: String,
     description: String,
     onConfirmClick: () -> Unit,
+    confirmText: String,
     onDismissClick: () -> Unit,
+    dismissText: String,
     onDismissRequest: () -> Unit
 ) {
     AlertDialog(
@@ -385,7 +384,7 @@ fun Dialog(
                 },
                 elevation = ButtonDefaults.elevation(0.dp)
             ) {
-                Text(text = "Yes")
+                Text(text = confirmText)
             }
         },
         dismissButton = {
@@ -398,7 +397,7 @@ fun Dialog(
                 },
                 elevation = ButtonDefaults.elevation(0.dp)
             ) {
-                Text(text = "No")
+                Text(text = dismissText)
             }
         },
         title = {
@@ -484,7 +483,7 @@ fun BottomSheetContent(
                                         onDownloadClick.invoke(applicationInfo)
                                     }
                                 ) {
-                                    Text(text = "Download")
+                                    Text(text = stringResource(id = R.string.download))
                                 }
                             }
                             is ApplicationState.Downloading -> {
@@ -536,7 +535,7 @@ fun BottomSheetContent(
                                             onPlayClick.invoke(applicationInfo)
                                         }
                                     ) {
-                                        Text(text = "Play")
+                                        Text(text = stringResource(id = R.string.play))
                                     }
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Button(
@@ -549,7 +548,7 @@ fun BottomSheetContent(
                                             onDeleteClick.invoke(applicationInfo)
                                         },
                                     ) {
-                                        Text(text = "Delete")
+                                        Text(text = stringResource(id = R.string.delete))
                                     }
                                 }
                             }
@@ -563,7 +562,7 @@ fun BottomSheetContent(
                                         onDownloadClick.invoke(applicationInfo)
                                     }
                                 ) {
-                                    Text(text = "Download")
+                                    Text(text = stringResource(id = R.string.download))
                                 }
                             }
                         }
@@ -592,7 +591,7 @@ fun BottomSheetContent(
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(applicationInfo.githubUrl))
                             context.startActivity(intent)
                         }) {
-                            Text(text = "Open Github")
+                            Text(text = stringResource(id = R.string.open_github))
                         }
                     }
                 }

@@ -12,6 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Button
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
@@ -24,33 +26,35 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.frankuzi.frankuzistore.R
 import com.frankuzi.frankuzistore.applications.domain.model.AboutMeInfo
 import com.frankuzi.frankuzistore.applications.domain.model.AboutMeRequestState
-import com.frankuzi.frankuzistore.applications.presentation.AboutMeViewModel
 
 @Composable
-fun AboutMeScreen(aboutMeRequestState: AboutMeRequestState) {
+fun AboutMeScreen(
+    aboutMeRequestState: AboutMeRequestState,
+    onTryAgain: () -> Unit
+) {
 
     when (aboutMeRequestState) {
         is AboutMeRequestState.Success -> {
-            SuccessScreen(aboutMeInfo = aboutMeRequestState.aboutMeInfo)
+            AboutMeSuccessView(aboutMeInfo = aboutMeRequestState.aboutMeInfo)
         }
         is AboutMeRequestState.Failed -> {
-
+            AboutMeFailedView(onTryAgain)
         }
         AboutMeRequestState.Loading -> {
-
+            AboutMeLoadingView()
         }
     }
 }
 
 @Composable
-fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
+fun AboutMeSuccessView(aboutMeInfo: AboutMeInfo) {
 
     val context = LocalContext.current
     val clipboard: ClipboardManager = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
@@ -133,7 +137,7 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
                             clipboard.setPrimaryClip(clip)
                             Toast.makeText(
                                 context,
-                                "Email was copied to clipboard",
+                                context.resources.getText(R.string.email_was_copied_clipboard),
                                 Toast.LENGTH_SHORT
                             ).show()
                         },
@@ -152,7 +156,7 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
                         modifier = Modifier
                     ) {
                         Text(
-                            text = aboutMeInfo.githubLink,
+                            text = stringResource(id = R.string.my_github),
                             color = MaterialTheme.colors.onSecondary
                         )
                     }
@@ -168,6 +172,38 @@ fun SuccessScreen(aboutMeInfo: AboutMeInfo) {
                     text = aboutMeInfo.description
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun AboutMeLoadingView() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+fun AboutMeFailedView(
+    tryAgain: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = stringResource(id = R.string.error))
+        Spacer(modifier = Modifier.height(5.dp))
+        Button(onClick = {
+            tryAgain.invoke()
+        }) {
+            Text(text = stringResource(id = R.string.try_again))
         }
     }
 }

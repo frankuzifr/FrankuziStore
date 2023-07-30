@@ -8,9 +8,11 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.frankuzi.frankuzistore.R
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationsRequestState
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -127,7 +129,7 @@ fun LoadingView() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Loading",
+            text = stringResource(id = R.string.loading),
         )
     }
 }

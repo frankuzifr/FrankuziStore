@@ -7,15 +7,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.text.intl.Locale
 import androidx.core.content.FileProvider
 import com.frankuzi.frankuzistore.BuildConfig
+import com.frankuzi.frankuzistore.R
 import com.frankuzi.frankuzistore.applications.domain.model.ApplicationInfo
-import com.frankuzi.frankuzistore.utils.myLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -45,8 +44,9 @@ class DownloadHandlerImpl(
     @SuppressLint("Range")
     override fun enqueueDownload(applicationInfo: ApplicationInfo, onProgressChanged: (Int) -> Unit, onComplete: () -> Unit, onError: () -> Unit) {
         isDownloading.value = true
+        val language = Locale.current.language
 
-        val destination = "${Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)}/${applicationInfo.applicationName}.apk"
+        val destination = "${context.getExternalFilesDir(DIRECTORY_DOWNLOADS)}/${applicationInfo.applicationName}.apk"
 
         val uri = Uri.parse("$FILE_BASE_PATH$destination")
         val file = File(destination)
@@ -54,19 +54,25 @@ class DownloadHandlerImpl(
         if (file.exists())
             file.delete()
 
+        val appName =
+            if (language == "ru")
+                applicationInfo.ruApplicationName
+            else
+                applicationInfo.applicationName
+
         val downloadUri = Uri.parse(applicationInfo.downloadUrl)
         val request = DownloadManager.Request(downloadUri)
             .setMimeType(MIME_TYPE)
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION)
-            .setTitle("${applicationInfo.applicationName}")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+            .setTitle(appName)
             .setDestinationUri(uri)
 
         _downloadId = _downloadManager.enqueue(request)
 
-        showInstallOption(destination, uri, onComplete, onError)
+        showInstallOption(destination, onComplete)
 
         Toast
-            .makeText(context, "${applicationInfo.applicationName} downloading", Toast.LENGTH_LONG)
+            .makeText(context, context.resources.getString(R.string.downloading, appName), Toast.LENGTH_LONG)
             .show()
 
         _job = _coroutineScope.launch {
@@ -104,7 +110,7 @@ class DownloadHandlerImpl(
         _downloadManager.remove(_downloadId)
     }
 
-    private fun showInstallOption(destination: String, uri: Uri, onCompleteAction: () -> Unit, onErrorAction: () -> Unit) {
+    private fun showInstallOption(destination: String, onCompleteAction: () -> Unit) {
         _broadcastReceiver = object : BroadcastReceiver() {
             override fun onReceive(recieverContext: Context?, intent: Intent?) {
 
@@ -113,30 +119,20 @@ class DownloadHandlerImpl(
                 if (!file.exists())
                     return
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    val contentUri = FileProvider.getUriForFile(
-                        recieverContext!!,
-                        BuildConfig.APPLICATION_ID + PROVIDER_PATH,
-                        File(destination)
-                    )
+                val contentUri = FileProvider.getUriForFile(
+                    context,
+                    BuildConfig.APPLICATION_ID + PROVIDER_PATH,
+                    File(destination)
+                )
 
-                    val install = Intent(Intent.ACTION_VIEW)
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        .putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+                val install = Intent(Intent.ACTION_VIEW)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    .putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
 
-                    install.data = contentUri
-                    context.startActivity(install)
-                    context.unregisterReceiver(this)
-
-                } else {
-                    val install = Intent(Intent.ACTION_VIEW)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        .setDataAndType(uri, APP_INSTALL_PATH)
-
-                    context.startActivity(install)
-                    context.unregisterReceiver(this)
-                }
+                install.data = contentUri
+                context.startActivity(install)
+                context.unregisterReceiver(this)
 
                 onCompleteAction.invoke()
             }
