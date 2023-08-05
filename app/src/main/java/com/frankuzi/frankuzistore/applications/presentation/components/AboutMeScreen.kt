@@ -73,7 +73,7 @@ fun AboutMeSuccessView(aboutMeInfo: AboutMeInfo) {
                     .fillMaxHeight()
                     .width(160.dp)
             ) {
-                val borderWidth = 4.dp
+                val borderWidth = 2.dp
                 val tripleColorsBrush = remember {
                     Brush.verticalGradient(
                         listOf(
@@ -94,7 +94,7 @@ fun AboutMeSuccessView(aboutMeInfo: AboutMeInfo) {
                         .fillMaxSize()
                         .padding(10.dp)
                         .border(
-                            BorderStroke(borderWidth, tripleColorsBrush),
+                            BorderStroke(borderWidth, MaterialTheme.colors.onSecondary),
                             CircleShape
                         )
                         .padding(borderWidth)

@@ -146,9 +146,6 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
     val bottomSheetRadius by remember {
         mutableFloatStateOf(if (sheetState.isExpanded) 20 * sheetState.progress else 20 - 20 * sheetState.progress)
     }
-    var selectedApplicationIndex by remember {
-        mutableIntStateOf(0)
-    }
 
     BackHandler {
         if (sheetState.isExpanded) {
@@ -198,7 +195,7 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                 contentAlignment = Alignment.Center,
             ) {
                 BottomSheetContent(
-                    selectedApplicationIndex = selectedApplicationIndex,
+                    selectedApplicationIndex = storeViewModel.selectedApplication.value,
                     getApplicationState = state,
                     onDownloadClick = { applicationInfo ->
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -217,7 +214,6 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                         context.startActivity(intent)
                     },
                     onDeleteClick = { applicationInfo ->
-                        myLog("package:${applicationInfo.packageName}")
                         val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE)
                         intent.data = Uri.parse("package:${applicationInfo.packageName}")
                         context.startActivity(intent)
@@ -240,12 +236,14 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                         Text(text = appBarTitle)
                     },
                     elevation = 0.dp,
-                    backgroundColor = defaultBackground,
+                    backgroundColor = MaterialTheme.colors.background,
                 )
             },
             bottomBar = {
                 BottomNavigation(
-                    elevation = 4.dp
+                    elevation = 4.dp,
+                    backgroundColor = MaterialTheme.colors.primary,
+                    contentColor = MaterialTheme.colors.onSecondary
                 ) {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
@@ -307,7 +305,7 @@ fun Content(storeViewModel: StoreViewModel, aboutMeViewModel: AboutMeViewModel) 
                             storeViewModel.updateApplicationsInfo()
                         },
                         onIconClick = { applicationInfoIndex ->
-                            selectedApplicationIndex = applicationInfoIndex
+                            storeViewModel.selectedApplication.value = applicationInfoIndex
                             coroutineScope.launch {
                                 sheetState.expand()
                             }
@@ -504,7 +502,8 @@ fun BottomSheetContent(
                                         )
                                         Text(
                                             text = "${applicationState.progress}%",
-                                            textAlign = TextAlign.Center
+                                            textAlign = TextAlign.Center,
+                                            color = Color.Black
                                         )
                                         IconButton(
                                             modifier = Modifier
@@ -517,7 +516,8 @@ fun BottomSheetContent(
                                         ) {
                                             Icon(
                                                 painter = painterResource(id = R.drawable.baseline_close_24),
-                                                contentDescription = "Cancel download"
+                                                contentDescription = "Cancel download",
+                                                tint = Color.Black
                                             )
                                         }
                                     }

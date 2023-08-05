@@ -1,5 +1,7 @@
 package com.frankuzi.frankuzistore.applications.presentation
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.frankuzi.frankuzistore.App
@@ -23,6 +25,8 @@ class StoreViewModel @Inject constructor(
 
     private var _applicationsInfo = storeRepository.updateApplicationsInfo()
     val applicationsInfo = _applicationsInfo.asStateFlow()
+
+    var selectedApplication = mutableIntStateOf(0)
 
     private var _job = Job()
         get() {
